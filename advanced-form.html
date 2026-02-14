@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TurboSyntax Advanced Auth</title>
+
+<style>
+:root {
+    --primary:#e30613;
+    --dark:#0f172a;
+    --light:#ffffff;
+    --gray:#f1f5f9;
+}
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:'Poppins',sans-serif;
+}
+
+body{
+    height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    background:
+    linear-gradient(120deg,rgba(15,23,42,.85),rgba(227,6,19,.35));
+}
+
+.form-container{
+    width:400px;
+    background:#fff;
+    padding:40px;
+    border-radius:12px;
+    box-shadow:0 20px 60px rgba(0,0,0,.2);
+}
+
+.input-group{
+    position:relative;
+    margin-bottom:25px;
+}
+
+.input-group input{
+    width:100%;
+    padding:12px;
+    border:1px solid #ccc;
+    border-radius:6px;
+    outline:none;
+}
+
+.error{
+    font-size:12px;
+    color:red;
+    display:none;
+}
+
+button{
+    width:100%;
+    padding:12px;
+    background:var(--primary);
+    border:none;
+    color:#fff;
+    border-radius:6px;
+    cursor:pointer;
+}
+</style>
+</head>
+
+<body>
+
+<div class="form-container">
+
+<form id="loginForm" novalidate>
+
+<div class="input-group">
+<input type="email" id="email" required placeholder="Email Address">
+<span class="error" id="emailError">Invalid Email</span>
+</div>
+
+<div class="input-group">
+<input type="password" id="password" required minlength="6" placeholder="Password">
+<span class="error" id="passError">Minimum 6 characters</span>
+</div>
+
+<button type="submit">Login</button>
+
+</form>
+
+</div>
+
+<script>
+
+class TurboValidator {
+
+    constructor(form){
+        this.form = form;
+        this.fields = form.querySelectorAll("input");
+        this.attachEvents();
+    }
+
+    attachEvents(){
+        this.form.addEventListener("submit", (e)=>{
+            this.validateForm(e);
+        });
+    }
+
+    validateForm(e){
+
+        let isValid = true;
+
+        this.fields.forEach(field => {
+
+            const errorSpan = field.nextElementSibling;
+
+            if(field.value.trim() === ""){
+                errorSpan.style.display="block";
+                isValid=false;
+            }
+            else{
+                errorSpan.style.display="none";
+            }
+
+        });
+
+        // ❌ MOBILE BUG STARTS HERE
+        if(!isValid && window.innerWidth > 768){
+            e.preventDefault();
+        }
+        // ❌ On Mobile this never prevents submission!
+
+    }
+
+}
+
+new TurboValidator(document.getElementById("loginForm"));
+
+</script>
+
+</body>
+</html>
