@@ -11,6 +11,8 @@
     --dark:#0f172a;
     --light:#ffffff;
     --gray:#f1f5f9;
+    --error:#ff4d4f;
+    --transition:.3s ease;
 }
 
 *{
@@ -25,16 +27,23 @@ body{
     display:flex;
     justify-content:center;
     align-items:center;
-    background:
-    linear-gradient(120deg,rgba(15,23,42,.85),rgba(227,6,19,.35));
+    background: linear-gradient(120deg, rgba(15,23,42,.85), rgba(227,6,19,.35));
 }
 
 .form-container{
     width:400px;
+    max-width:90%;
     background:#fff;
     padding:40px;
     border-radius:12px;
     box-shadow:0 20px 60px rgba(0,0,0,.2);
+    position: relative;
+}
+
+.form-container h2{
+    text-align:center;
+    margin-bottom:30px;
+    color:var(--dark);
 }
 
 .input-group{
@@ -44,16 +53,35 @@ body{
 
 .input-group input{
     width:100%;
-    padding:12px;
+    padding:12px 40px 12px 12px;
     border:1px solid #ccc;
     border-radius:6px;
     outline:none;
+    transition:border-color var(--transition);
 }
 
-.error{
+.input-group input:focus{
+    border-color: var(--primary);
+}
+
+.input-group .error{
     font-size:12px;
-    color:red;
+    color:var(--error);
     display:none;
+    position:absolute;
+    bottom:-18px;
+    left:0;
+    transition: all var(--transition);
+}
+
+.input-group .toggle-pass{
+    position:absolute;
+    top:50%;
+    right:12px;
+    transform:translateY(-50%);
+    cursor:pointer;
+    font-size:14px;
+    color:#888;
 }
 
 button{
@@ -64,7 +92,34 @@ button{
     color:#fff;
     border-radius:6px;
     cursor:pointer;
+    transition: all var(--transition);
+    font-size:16px;
+    font-weight:500;
 }
+
+button:hover{
+    background:#c00510;
+    transform: translateY(-2px);
+}
+
+.remember-me{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin-bottom:20px;
+    font-size:14px;
+}
+
+.remember-me input{
+    width:auto;
+}
+
+@media(max-width:768px){
+    .form-container{
+        padding:30px 20px;
+    }
+}
+
 </style>
 </head>
 
@@ -72,16 +127,24 @@ button{
 
 <div class="form-container">
 
+<h2>Login</h2>
+
 <form id="loginForm" novalidate>
 
 <div class="input-group">
 <input type="email" id="email" required placeholder="Email Address">
-<span class="error" id="emailError">Invalid Email</span>
+<span class="error" id="emailError">Please enter a valid email</span>
 </div>
 
 <div class="input-group">
 <input type="password" id="password" required minlength="6" placeholder="Password">
-<span class="error" id="passError">Minimum 6 characters</span>
+<span class="toggle-pass" id="togglePass">Show</span>
+<span class="error" id="passError">Minimum 6 characters required</span>
+</div>
+
+<div class="remember-me">
+<input type="checkbox" id="remember">
+<label for="remember">Remember me</label>
 </div>
 
 <button type="submit">Login</button>
@@ -96,40 +159,60 @@ class TurboValidator {
 
     constructor(form){
         this.form = form;
-        this.fields = form.querySelectorAll("input");
+        this.email = form.querySelector("#email");
+        this.password = form.querySelector("#password");
+        this.emailError = form.querySelector("#emailError");
+        this.passError = form.querySelector("#passError");
+        this.togglePass = form.querySelector("#togglePass");
+
         this.attachEvents();
     }
 
     attachEvents(){
-        this.form.addEventListener("submit", (e)=>{
-            this.validateForm(e);
-        });
+        this.form.addEventListener("submit", (e)=> this.validateForm(e));
+        this.email.addEventListener("input", ()=> this.validateEmail());
+        this.password.addEventListener("input", ()=> this.validatePassword());
+        this.togglePass.addEventListener("click", ()=> this.togglePassword());
+    }
+
+    validateEmail(){
+        const regex = /^\S+@\S+\.\S+$/;
+        if(this.email.value.trim() === "" || !regex.test(this.email.value)){
+            this.emailError.style.display = "block";
+            return false;
+        } else {
+            this.emailError.style.display = "none";
+            return true;
+        }
+    }
+
+    validatePassword(){
+        if(this.password.value.trim().length < 6){
+            this.passError.style.display = "block";
+            return false;
+        } else {
+            this.passError.style.display = "none";
+            return true;
+        }
+    }
+
+    togglePassword(){
+        if(this.password.type === "password"){
+            this.password.type = "text";
+            this.togglePass.innerText = "Hide";
+        } else {
+            this.password.type = "password";
+            this.togglePass.innerText = "Show";
+        }
     }
 
     validateForm(e){
+        let emailValid = this.validateEmail();
+        let passValid = this.validatePassword();
 
-        let isValid = true;
-
-        this.fields.forEach(field => {
-
-            const errorSpan = field.nextElementSibling;
-
-            if(field.value.trim() === ""){
-                errorSpan.style.display="block";
-                isValid=false;
-            }
-            else{
-                errorSpan.style.display="none";
-            }
-
-        });
-
-        // ❌ MOBILE BUG STARTS HERE
-        if(!isValid && window.innerWidth > 768){
-            e.preventDefault();
+        if(!emailValid || !passValid){
+            e.preventDefault(); // Prevent submission on all devices
         }
-        // ❌ On Mobile this never prevents submission!
-
     }
 
 }
