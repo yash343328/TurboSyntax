@@ -27,7 +27,15 @@ body{
     display:flex;
     justify-content:center;
     align-items:center;
-    background: linear-gradient(120deg, rgba(15,23,42,.85), rgba(227,6,19,.35));
+    background: linear-gradient(-45deg, #0f172a, #e30613, #0f172a, #e30613);
+    background-size: 400% 400%;
+    animation: gradientBG 15s ease infinite;
+}
+
+@keyframes gradientBG {
+    0%{background-position:0% 50%;}
+    50%{background-position:100% 50%;}
+    100%{background-position:0% 50%;}
 }
 
 .form-container{
@@ -36,7 +44,7 @@ body{
     background:#fff;
     padding:40px;
     border-radius:12px;
-    box-shadow:0 20px 60px rgba(0,0,0,.2);
+    box-shadow:0 20px 60px rgba(0,0,0,.3);
     position: relative;
 }
 
@@ -48,15 +56,16 @@ body{
 
 .input-group{
     position:relative;
-    margin-bottom:25px;
+    margin-bottom:30px;
 }
 
 .input-group input{
     width:100%;
-    padding:12px 40px 12px 12px;
+    padding:12px 12px;
     border:1px solid #ccc;
     border-radius:6px;
     outline:none;
+    font-size:14px;
     transition:border-color var(--transition);
 }
 
@@ -64,17 +73,49 @@ body{
     border-color: var(--primary);
 }
 
+.input-group label{
+    position:absolute;
+    left:12px;
+    top:12px;
+    font-size:14px;
+    color:#888;
+    pointer-events:none;
+    transition: all 0.2s ease;
+}
+
+.input-group input:focus + label,
+.input-group input:not(:placeholder-shown) + label{
+    top:-8px;
+    left:8px;
+    font-size:12px;
+    background:#fff;
+    padding:0 4px;
+    color:var(--primary);
+}
+
 .input-group .error{
     font-size:12px;
     color:var(--error);
     display:none;
     position:absolute;
-    bottom:-18px;
+    bottom:-20px;
     left:0;
     transition: all var(--transition);
 }
 
-.input-group .toggle-pass{
+.input-group.shake{
+    animation: shake 0.3s;
+}
+
+@keyframes shake{
+    0% {transform: translateX(0);}
+    25% {transform: translateX(-5px);}
+    50% {transform: translateX(5px);}
+    75% {transform: translateX(-5px);}
+    100% {transform: translateX(0);}
+}
+
+.toggle-pass{
     position:absolute;
     top:50%;
     right:12px;
@@ -82,6 +123,34 @@ body{
     cursor:pointer;
     font-size:14px;
     color:#888;
+}
+
+.password-strength{
+    height:5px;
+    width:100%;
+    background:#eee;
+    border-radius:3px;
+    margin-top:6px;
+}
+
+.password-strength div{
+    height:100%;
+    width:0%;
+    border-radius:3px;
+    transition: width 0.3s ease;
+}
+
+.remember-me{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin-bottom:20px;
+    font-size:14px;
+}
+
+.remember-me input{
+    width:auto;
+    accent-color:var(--primary);
 }
 
 button{
@@ -102,16 +171,30 @@ button:hover{
     transform: translateY(-2px);
 }
 
-.remember-me{
+.social-login{
     display:flex;
-    align-items:center;
-    gap:8px;
-    margin-bottom:20px;
-    font-size:14px;
+    gap:10px;
+    justify-content:center;
+    margin-top:20px;
 }
 
-.remember-me input{
-    width:auto;
+.social-login button{
+    flex:1;
+    padding:10px;
+    border:none;
+    border-radius:6px;
+    cursor:pointer;
+    color:#fff;
+    font-weight:500;
+    transition: all var(--transition);
+}
+
+.social-login .google{
+    background:#db4437;
+}
+
+.social-login .facebook{
+    background:#4267B2;
 }
 
 @media(max-width:768px){
@@ -132,13 +215,16 @@ button:hover{
 <form id="loginForm" novalidate>
 
 <div class="input-group">
-<input type="email" id="email" required placeholder="Email Address">
+<input type="email" id="email" placeholder=" " required>
+<label for="email">Email Address</label>
 <span class="error" id="emailError">Please enter a valid email</span>
 </div>
 
 <div class="input-group">
-<input type="password" id="password" required minlength="6" placeholder="Password">
+<input type="password" id="password" placeholder=" " required minlength="6">
+<label for="password">Password</label>
 <span class="toggle-pass" id="togglePass">Show</span>
+<div class="password-strength"><div></div></div>
 <span class="error" id="passError">Minimum 6 characters required</span>
 </div>
 
@@ -148,6 +234,11 @@ button:hover{
 </div>
 
 <button type="submit">Login</button>
+
+<div class="social-login">
+<button type="button" class="google">Google</button>
+<button type="button" class="facebook">Facebook</button>
+</div>
 
 </form>
 
@@ -164,6 +255,7 @@ class TurboValidator {
         this.emailError = form.querySelector("#emailError");
         this.passError = form.querySelector("#passError");
         this.togglePass = form.querySelector("#togglePass");
+        this.passStrengthBar = form.querySelector(".password-strength div");
 
         this.attachEvents();
     }
@@ -171,7 +263,10 @@ class TurboValidator {
     attachEvents(){
         this.form.addEventListener("submit", (e)=> this.validateForm(e));
         this.email.addEventListener("input", ()=> this.validateEmail());
-        this.password.addEventListener("input", ()=> this.validatePassword());
+        this.password.addEventListener("input", ()=> { 
+            this.validatePassword();
+            this.updateStrength();
+        });
         this.togglePass.addEventListener("click", ()=> this.togglePassword());
     }
 
@@ -179,6 +274,8 @@ class TurboValidator {
         const regex = /^\S+@\S+\.\S+$/;
         if(this.email.value.trim() === "" || !regex.test(this.email.value)){
             this.emailError.style.display = "block";
+            this.email.parentElement.classList.add("shake");
+            setTimeout(()=>{this.email.parentElement.classList.remove("shake")},300);
             return false;
         } else {
             this.emailError.style.display = "none";
@@ -189,11 +286,27 @@ class TurboValidator {
     validatePassword(){
         if(this.password.value.trim().length < 6){
             this.passError.style.display = "block";
+            this.password.parentElement.classList.add("shake");
+            setTimeout(()=>{this.password.parentElement.classList.remove("shake")},300);
             return false;
         } else {
             this.passError.style.display = "none";
             return true;
         }
+    }
+
+    updateStrength(){
+        const val = this.password.value;
+        let strength = 0;
+        if(val.length >= 6) strength++;
+        if(/[A-Z]/.test(val)) strength++;
+        if(/[0-9]/.test(val)) strength++;
+        if(/[^A-Za-z0-9]/.test(val)) strength++;
+        this.passStrengthBar.style.width = (strength*25)+"%";
+        if(strength<=1) this.passStrengthBar.style.background="red";
+        else if(strength==2) this.passStrengthBar.style.background="orange";
+        else if(strength==3) this.passStrengthBar.style.background="yellowgreen";
+        else this.passStrengthBar.style.background="green";
     }
 
     togglePassword(){
